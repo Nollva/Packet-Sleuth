@@ -28,7 +28,7 @@ Backend Team (Python Focus)
 
 Frontend Team (Web Focus)
 
-[ ] Hello World Flask: Create app.py and templates/index.html to ensure a basic web page loads.
+✅ Hello World Flask: Create app.py and templates/index.html to ensure a basic web page loads.
 
 [ ] Layout Sketch: Draw a quick whiteboard sketch of where the Charts and the Alert Logs will go on the screen.
 
