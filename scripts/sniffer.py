@@ -68,6 +68,14 @@ class OptimizedSniffer:
     def start(self):
         if self.running:
             return
+        
+        # --- 1. RESET LOGIC (Added) ---
+        with self.lock:
+            self._pps_history.clear()       # Clears the Line Graph history
+            self._time_history.clear()      # Clears the Time axis
+            self._current_packet_count = 0  # Resets the "Current Speed" to 0
+            self._total_protocols.clear()   # Resets the Pie Chart & Total Packet count
+        # ------------------------------
 
         self.running = True
         
