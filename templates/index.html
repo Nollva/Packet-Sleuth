@@ -1,79 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Live Data Monitor</title>
-    
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <link rel="stylesheet" href="../static/css/main.css">
-
-</head>
-<body>
-
-    <div class="chart-container">
-        <h2>Live Sensor Feed</h2>
-        <div id="live-graph" style="width:100%;height:500px;"></div>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Packet-Sleuth Dashboard</title>
+    <!-- Bootstrap 5 -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Socket.IO -->
+    <script src="https://cdn.socket.io/4.5.1/socket.io.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Styles File -->
+    <link rel="stylesheet" href="../static/css/main.css" />
+  </head>
+  <body>
+    <div class="container">
+      <!-- Top Bar with Logo -->
+      <div id="top-bar" class="d-flex align-items-center mb-4">
+        <img
+          src="../static/images/Packet-Sleuth Logo.png"
+          alt="Packet-Sleuth Logo"
+          style="height: 115px; margin-right: 15px"
+        />
+        <h1 class="flex-grow-1 text-center mb-0">Packet-Sleuth Dashboard</h1>
+        <button id="toggleScan" class="btn btn-primary">Start Scan</button>
+      </div>
+      <!-- Small Cards Flexbox -->
+      <div class="d-flex mb-4">
+        <div class="card small-card">
+          <h5>Total Packets</h5>
+          <p id="totalPackets">0</p>
+        </div>
+        <div class="card small-card">
+          <h5>Alerts</h5>
+          <p id="totalAlerts">0</p>
+        </div>
+        <div class="card small-card">
+          <h5>Top Protocol</h5>
+          <p id="topProtocol">N/A</p>
+        </div>
+      </div>
+      <!-- Graph Cards -->
+      <div class="card">
+        <h4 class="mb-3">Packets per Second</h4>
+        <canvas id="packetChart" height="50px" width="100vw"></canvas>
+      </div>
+      <div class="card">
+        <h4 class="mb-3">Packet Types</h4>
+        <canvas id="packetChart2" height="50px" width="100vw"></canvas>
+      </div>
     </div>
+    <!-- Footer -->
+    <div id="footer">&copy; 2025 Packet-Sleuth. All rights reserved.</div>
+  </body>
 
-    <script>
-        // 2. Connect to the Flask-SocketIO server
-        var socket = io();
+  <script>
+    const socket = io();
+    let scanRunning = false; // --- Toggle Scan Button ---
+    const toggleBtn = document.getElementById("toggleScan");
+    toggleBtn.addEventListener("click", () => {
+      scanRunning = !scanRunning;
+      if (scanRunning) {
+        toggleBtn.textContent = "Stop Scan";
+        toggleBtn.classList.remove("btn-primary");
+        toggleBtn.classList.add("stop-mode");
+      } else {
+        toggleBtn.textContent = "Start Scan";
+        toggleBtn.classList.remove("stop-mode");
+        toggleBtn.classList.add("btn-primary");
+      }
+    })
 
-        // 3. Initialize the Chart (Empty at first)
-        var graphDiv = document.getElementById('live-graph');
-
-var layout = {
-    title: {
-        text: 'Real-Time Sine Wave',
-        font: { color: '#ffffff' }
-    },
-    // 1. Dark Backgrounds
-    plot_bgcolor: '#1e1e1e',
-    paper_bgcolor: '#1e1e1e',
-    
-    // 2. Light Text & Grid Lines for X-Axis
-    xaxis: { 
-        title: { text: 'Time', font: { color: '#aaaaaa' } },
-        tickfont: { color: '#aaaaaa' },
-        gridcolor: '#333333', // Dark grey grid lines
-        type: 'category'
-    },
-    
-    // 3. Light Text & Grid Lines for Y-Axis
-    yaxis: { 
-        title: { text: 'Amplitude', font: { color: '#aaaaaa' } },
-        tickfont: { color: '#aaaaaa' },
-        gridcolor: '#333333',
-        zerolinecolor: '#333333',
-        range: [30, 70] 
-    },
-    
-    margin: { t: 50, r: 50, b: 50, l: 50 }
-};
-
-        var data = [{
-            x: [],
-            y: [],
-            mode: 'lines',
-            line: {color: '#00ffff', width: 3, shape: 'spline', smoothing: 1.3} // 'Raven Red' color
-        }];
-
-        Plotly.newPlot(graphDiv, data, layout);
-
-        // 4. Listen for the 'update_graph' event from app.py
-        socket.on('update_graph', function(msg) {
-            console.log("Received:", msg); // Debugging: shows data in browser console
-
-            var update = {
-                x: [[msg.x]],
-                y: [[msg.y]]
-            };
-
-            // 5. Efficiently append data
-            // Plotly.extendTraces(graphDiv, updateObject, [traceIndices], maxPoints)
-            Plotly.extendTraces(graphDiv, update, [0]);
-        });
-    </script>
-</body>
+    // --- THE ONLY JAVASCRIPT YOU NEED ---
+            
+            // 1. Ask Python for the latest graph JSON every 500ms
+            setInterval(async function() {
+                const response = await fetch('/graph-json');
+                const graphJSON = await response.json();
+                
+                // 2. Hand the JSON to Plotly to draw
+                // Plotly.react is faster than .newPlot because it only updates changes
+                Plotly.react('packetChart', graphJSON.data, graphJSON.layout);
+            }, 500);
+  </script>
 </html>

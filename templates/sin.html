@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live Data Monitor</title>
+    
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link rel="stylesheet" href="../static/css/main.css">
+
+</head>
+<body>
+
+    <div class="chart-container">
+        <h2>Live Sensor Feed</h2>
+        <div id="live-graph" style="width:100%;height:500px;"></div>
+    </div>
+
+    <script>
+        // 2. Connect to the Flask-SocketIO server
+        var socket = io();
+
+        // 3. Initialize the Chart (Empty at first)
+        var graphDiv = document.getElementById('live-graph');
+
+var layout = {
+    title: {
+        text: 'Real-Time Sine Wave',
+        font: { color: '#ffffff' }
+    },
+    // 1. Dark Backgrounds
+    plot_bgcolor: '#1e1e1e',
+    paper_bgcolor: '#1e1e1e',
+    
+    // 2. Light Text & Grid Lines for X-Axis
+    xaxis: { 
+        title: { text: 'Time', font: { color: '#aaaaaa' } },
+        tickfont: { color: '#aaaaaa' },
+        gridcolor: '#333333', // Dark grey grid lines
+        type: 'category'
+    },
+    
+    // 3. Light Text & Grid Lines for Y-Axis
+    yaxis: { 
+        title: { text: 'Amplitude', font: { color: '#aaaaaa' } },
+        tickfont: { color: '#aaaaaa' },
+        gridcolor: '#333333',
+        zerolinecolor: '#333333',
+        range: [30, 70] 
+    },
+    
+    margin: { t: 50, r: 50, b: 50, l: 50 }
+};
+
+        var data = [{
+            x: [],
+            y: [],
+            mode: 'lines',
+            line: {color: '#00ffff', width: 3, shape: 'spline', smoothing: 1.3} // 'Raven Red' color
+        }];
+
+        Plotly.newPlot(graphDiv, data, layout);
+
+        // 4. Listen for the 'update_graph' event from app.py
+        socket.on('update_graph', function(msg) {
+            console.log("Received:", msg); // Debugging: shows data in browser console
+
+            var update = {
+                x: [[msg.x]],
+                y: [[msg.y]]
+            };
+
+            // 5. Efficiently append data
+            // Plotly.extendTraces(graphDiv, updateObject, [traceIndices], maxPoints)
+            Plotly.extendTraces(graphDiv, update, [0]);
+        });
+    </script>
+</body>
+</html>
