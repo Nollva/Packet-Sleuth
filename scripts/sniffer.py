@@ -6,26 +6,24 @@ import scapy.all as scapy
 from scapy.layers.inet import IP, TCP, UDP, ICMP
 
 class OptimizedSniffer:
-    def __init__(self, history_size=60, update_interval=0.5):
+    # UPDATED: Default interval set to 1.0 second for 1:1 timing
+    def __init__(self, history_size=60, update_interval=1.0):
         # --- CONFIGURATION ---
         self.update_interval = update_interval
         self.running = False
         self.lock = threading.Lock()
 
         # --- LIVE DATA (Fast Access) ---
-        # These are incremented rapidly by the packet capture
         self._current_packet_count = 0
         self._total_protocols = Counter()
 
         # --- HISTORY DATA (For Graphing) ---
-        # Deques automatically pop the oldest item when full (Optimization)
         self._pps_history = deque(maxlen=history_size)
         self._time_history = deque(maxlen=history_size)
 
     def _packet_callback(self, packet):
         """
         OPTIMIZATION TIP: Keep this function as short as possible.
-        Every microsecond here = missed packets during high load.
         """
         # 1. Cheap filtering (Don't process if no IP layer)
         if IP not in packet:
@@ -48,14 +46,13 @@ class OptimizedSniffer:
     def _monitor_loop(self):
         """
         Background process that handles the 'Time Series' logic.
-        It runs independently of the Flask server.
         """
         while self.running:
             time.sleep(self.update_interval)
             
             with self.lock:
                 # Calculate PPS (Packets / Interval)
-                # If interval is 0.5s, we multiply count by 2 to get 'Per Second' rate
+                # Since interval is 1.0, this is now a direct 1:1 count (e.g. 50 packets * 1 = 50 PPS)
                 pps = self._current_packet_count * (1 / self.update_interval)
                 
                 # Reset the counter for the next window
@@ -69,13 +66,12 @@ class OptimizedSniffer:
         if self.running:
             return
         
-        # --- 1. RESET LOGIC (Added) ---
+        # --- RESET LOGIC ---
         with self.lock:
-            self._pps_history.clear()       # Clears the Line Graph history
-            self._time_history.clear()      # Clears the Time axis
-            self._current_packet_count = 0  # Resets the "Current Speed" to 0
-            self._total_protocols.clear()   # Resets the Pie Chart & Total Packet count
-        # ------------------------------
+            self._pps_history.clear()       
+            self._time_history.clear()      
+            self._current_packet_count = 0  
+            self._total_protocols.clear()   
 
         self.running = True
         
@@ -96,20 +92,12 @@ class OptimizedSniffer:
     def stop(self):
         self.running = False
 
-    # --- PUBLIC API (What Flask Calls) ---
+    # --- PUBLIC API ---
 
     def get_pps_data(self):
-        """
-        Returns two lists: [Time Stamps], [PPS Values]
-        Perfect for Plotly's x and y axes.
-        """
         with self.lock:
             return list(self._time_history), list(self._pps_history)
 
     def get_protocol_data(self):
-        """
-        Returns a dictionary of all protocols seen so far.
-        Example: {'TCP': 1500, 'UDP': 400, 'ICMP': 20}
-        """
         with self.lock:
             return dict(self._total_protocols)

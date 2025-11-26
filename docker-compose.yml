@@ -1,0 +1,18 @@
+services:
+  packet-sleuth:
+    build: .
+    container_name: packet-sleuth
+    restart: unless-stopped
+    
+    # CRITICAL: This allows the container to see the Pi's network traffic
+    network_mode: "host"
+    
+    # CRITICAL: Scapy needs permission to open raw sockets
+    privileged: true
+    
+    # (Optional) Map a volume if you want to edit code on the Pi without rebuilding
+    # volumes:
+    #   - ./:/app
+    
+    environment:
+      - FLASK_ENV=production

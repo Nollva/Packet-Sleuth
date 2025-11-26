@@ -1,49 +1,76 @@
 from scripts.sniffer import OptimizedSniffer
+from scripts.graph_update import update_json_data
 from flask import Flask, render_template, jsonify
+import json
+import plotly.graph_objects as go
 
-# Set the DDOS Threshold for the percentages to be calculated later on.
-ATTACK_THRESHOLD = 1000 
+ATTACK_THRESHOLD = 5000 
 
-# Setup the flask web framework.
 app = Flask(__name__)
 app.config['SECRET_KEY'] = "9876543210"
 
-# Enable the sniffer class.
 sniffer = OptimizedSniffer()
 
-# Flask WebApp Routes.
 @app.route("/")
 def home():
-    '''Renders the index.html template for the homepage.'''
     return render_template("index.html")
 
-# @app.route('/graph_data')
-# def update_json_data():
-    '''Takes the data from the sniffer, turns it into graphs and variable,
-    and then returns it as a json when requested.'''
-    # Xavier's Code Goes right here.
+@app.route('/graph_data')
+def json_data_update():
+    # 1. Get raw data first to calculate DDoS status
+    # FIX: Using 'get_pps_data' (Original Name)
+    _, pps_history = sniffer.get_pps_data()
+    current_pps = pps_history[-1] if pps_history else 0
+    
+    # 2. Logic: Calculate DDoS Chance
+    ddos_chance = int((current_pps / ATTACK_THRESHOLD) * 100)
+    if ddos_chance > 100: ddos_chance = 100
+    
+    # 3. Logic: Determine Color
+    if ddos_chance > 80:
+        graph_color = '#dc3545' # Red
+    elif ddos_chance > 50:
+        graph_color = '#ffc107' # Yellow
+    else:
+        graph_color = '#58A6FF' # Blue (Your original color)
 
-    # update the code to ensure certain variables are conducted and especially the return statement from https://gemini.google.com/share/4602bd1f9fc5
+    # 4. Generate Graphs (Passing the color we just chose)
+    curr_pps, proto_data, line_chart, line_layout, pie_chart, pie_layout = update_json_data(sniffer=sniffer, line_color=graph_color)
+    
+    # 5. Logic: Calculate Total Packets & Top Protocol
+    total_packets = sum(proto_data.values())
+    if proto_data:
+        top_protocol = max(proto_data, key=lambda k: proto_data[k])
+    else:
+        top_protocol = "N/A"
 
+    return jsonify({
+            # Data Cards
+            "total_packets": total_packets,
+            "top_protocol": top_protocol,
+            "ddos_chance": ddos_chance,
+            
+            # Graphs
+            "current_pps": curr_pps,
+            "line_chart": line_chart,
+            "line_layout": line_layout,
+            "pie_chart": pie_chart,
+            "pie_layout": pie_layout
+        })
 
 @app.route('/start_sniffer', methods=['POST'])
 def start_sniffer():
-    '''Starts the sniffer and updates the status when the button is pressed on the frontend.'''
     sniffer.start()
     return jsonify({"status": "Sniffer Started", "running": True})
 
 @app.route('/stop_sniffer', methods=['POST'])
 def stop_sniffer():
-    '''Stops the sniffer and updates the status when the button is pressed on the frontend.'''
     sniffer.stop()
     return jsonify({"status": "Sniffer Stopped", "running": False})
 
 @app.route('/status_sniffer', methods=['GET'])
 def check_status():
-    '''Gets the status of the sniffer to ensure it is running still even if the page reloads.'''
     return jsonify({"running": sniffer.running})
 
-
-# If ran locally from the file, start the server, otherwise do nothing.
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000, debug=False)
