@@ -17,27 +17,26 @@ def home():
 
 @app.route('/graph_data')
 def json_data_update():
-    # 1. Get raw data first to calculate DDoS status
-    # FIX: Using 'get_pps_data' (Original Name)
+    '''Get the data from the sniffer, creater the graphs and variables necessary, and then format it to a json and post it to the route.'''
     _, pps_history = sniffer.get_pps_data()
     current_pps = pps_history[-1] if pps_history else 0
     
-    # 2. Logic: Calculate DDoS Chance
+    # Calculate DDoS Chance
     ddos_chance = int((current_pps / ATTACK_THRESHOLD) * 100)
     if ddos_chance > 100: ddos_chance = 100
     
-    # 3. Logic: Determine Color
+    # Determine Color based off of DDos Chance
     if ddos_chance > 80:
-        graph_color = '#dc3545' # Red
+        graph_color = '#dc3545' 
     elif ddos_chance > 50:
-        graph_color = '#ffc107' # Yellow
+        graph_color = '#ffc107' 
     else:
-        graph_color = '#58A6FF' # Blue (Your original color)
+        graph_color = '#58A6FF' 
 
-    # 4. Generate Graphs (Passing the color we just chose)
+    # Generate Graphs Using all of the known variables
     curr_pps, proto_data, line_chart, line_layout, pie_chart, pie_layout = update_json_data(sniffer=sniffer, line_color=graph_color)
     
-    # 5. Logic: Calculate Total Packets & Top Protocol
+    # Calculate Total Packets & Top Protocol
     total_packets = sum(proto_data.values())
     if proto_data:
         top_protocol = max(proto_data, key=lambda k: proto_data[k])

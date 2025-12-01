@@ -6,7 +6,7 @@ import scapy.all as scapy
 from scapy.layers.inet import IP, TCP, UDP, ICMP
 
 class OptimizedSniffer:
-    # UPDATED: Default interval set to 1.0 second for 1:1 timing
+    '''The Sniffer class'''
     def __init__(self, history_size=60, update_interval=1.0):
         # --- CONFIGURATION ---
         self.update_interval = update_interval

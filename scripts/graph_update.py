@@ -1,7 +1,7 @@
 import plotly.graph_objects as go
 
 def update_json_data(sniffer, line_color="#58A6FF"):    
-    # 1. Get Raw Data
+    # Get Raw Data
     time_data, pps_data = sniffer.get_pps_data()
     protocol_data = sniffer.get_protocol_data() if hasattr(sniffer, 'get_protocol_data') else {}    
 
@@ -96,7 +96,7 @@ def update_json_data(sniffer, line_color="#58A6FF"):
             "plot_bgcolor": "rgba(0,0,0,0)"
     }    
 
-    # --- PIE CHART (Unchanged) ---
+    # --- PIE CHART ---
     pie_chart = [{
             "labels": list(protocol_data.keys()),
             "values": list(protocol_data.values()),
@@ -115,7 +115,14 @@ def update_json_data(sniffer, line_color="#58A6FF"):
             "margin": {"t": 50, "l": 30, "r": 30, "b": 50},
             "transition": {"duration": 300, "easing": "cubic-in-out"},
             "paper_bgcolor": "rgba(0,0,0,0)",
-            "uirevision": "true"
+            "uirevision": "true",
+            "hoverlabel": {
+                "bgcolor": "#36454F",
+                "font": {
+                    "color": "#C9D1D9",
+                    "size": 14
+                }
+            }
     }
     
     return current_pps, protocol_data, line_chart, line_layout, pie_chart, pie_layout
